@@ -1,106 +1,64 @@
-import { State } from './state.js';
-import { step } from './loop.js';
-import { selfTests } from './tests.js';
-import { download, sha256, fmtArr } from './util.js';
+import { loadCsv, mergeOnDate } from './data.js';
+import { buildFeatures } from './features.js';
+import { ridgeFitPredict, walkForwardEval } from './model.js';
+import { renderDual } from './chart.js';
 
+const nf = new Intl.NumberFormat('de-DE',{maximumFractionDigits:4});
 function q(id){ return document.getElementById(id); }
 
 export class App {
-  constructor(){
-    this.ui = {
-      status: q('status'), gen: q('gen'), fit: q('fit'), log: q('log'),
-      toggle: q('toggle'), step: q('step'), export: q('export'), reset: q('reset'),
-      dims: q('dims'), mut: q('mut'), mutv: q('mutv'), targetPreview: q('targetPreview'),
-      randTarget: q('randTarget'), diag: q('diag')
-    };
-    this.timer = null;
-  }
-
   async init(){
-    State.load();
+    this.ui = {
+      goldCsv: q('goldCsv'), macroCsv: q('macroCsv'),
+      horizon: q('horizon'), train: q('train'), test: q('test'),
+      run: q('run'), diag: q('diag'),
+      pred_ret: q('pred_ret'), pred_price: q('pred_price'), pred_conf: q('pred_conf'), last_close: q('last_close'),
+      m_rmse: q('m_rmse'), m_mae: q('m_mae'), m_r2: q('m_r2'), m_n: q('m_n'),
+      chart: q('chart')
+    };
     this.bind();
-    const t = await selfTests();
-    this.setStatus(t.ok ? 'Bereit.' : 'Selbsttest fehlgeschlagen');
-    // UI Werte initialisieren
-    this.ui.dims.value = State.data.nDims;
-    this.ui.mut.value = State.data.mutationRate;
-    this.ui.mutv.textContent = State.data.mutationRate.toFixed(3);
-    this.renderTarget();
-    this.refresh();
-
-    if ('serviceWorker' in navigator && location.protocol.startsWith('https')) {
-      try{ await navigator.serviceWorker.register('./sw.js'); }catch(e){ this.diag('SW: '+e.message); }
-    }
   }
 
   bind(){
-    this.ui.toggle.onclick = () => {
-      State.data.running = !State.data.running;
-      this.ui.toggle.textContent = State.data.running ? 'Stop' : 'Start';
-      if (State.data.running) this.run(); else clearInterval(this.timer);
-      State.save();
-    };
-    this.ui.step.onclick = () => { step(State.data); this.afterTick(); };
-    this.ui.reset.onclick = () => { State.reset(); this.refresh(); this.log('Zurückgesetzt'); };
+    this.ui.run.onclick = async () => {
+      try{
+        this.ui.diag.textContent='';
+        this.ui.run.disabled=true;
 
-    this.ui.dims.onchange = () => {
-      const n = Number(this.ui.dims.value);
-      State.setDims(n);
-      this.renderTarget();
-      this.refresh();
-      this.log('Dimensionen gesetzt: ' + n);
-    };
-    this.ui.mut.oninput = () => {
-      const m = Number(this.ui.mut.value);
-      State.setMutation(m);
-      this.ui.mutv.textContent = m.toFixed(3);
-    };
-    this.ui.randTarget.onclick = () => {
-      State.randomizeTarget();
-      this.renderTarget();
-      this.refresh();
-      this.log('Zielvektor zufällig neu gesetzt.');
-    };
+        const gold = await loadCsv(this.ui.goldCsv.value);   // [{date, close}]
+        const macro = await loadCsv(this.ui.macroCsv.value); // [{date, dxy, vix, oil, y10, yc_10_2}]
+        const merged = mergeOnDate(gold, macro);             // forward-fill, as-of join
+        const H = Number(this.ui.horizon.value);
+        const rows = buildFeatures(merged, H);
 
-    this.ui.export.onclick = () => this.exportBest();
+        // Eval via walk-forward
+        const cfg = { horizonDays: H, trainMonths: Number(this.ui.train.value), testMonths: Number(this.ui.test.value) };
+        const ev = walkForwardEval(rows, cfg); // {oos_y, oos_pred, rmse, mae, r2, n, lastModel}
+        this.ui.m_rmse.textContent = nf.format(ev.rmse);
+        this.ui.m_mae.textContent  = nf.format(ev.mae);
+        this.ui.m_r2.textContent   = nf.format(ev.r2);
+        this.ui.m_n.textContent    = String(ev.n);
+
+        renderDual(this.ui.chart, ev.oos_y, ev.oos_pred);
+
+        // Next-day prediction using last train window model
+        const last = rows[rows.length-1];
+        const lastClose = last.close;
+        this.ui.last_close.textContent = nf.format(lastClose);
+        const fvec = last.features; // features at t for predicting t+H
+        const pred_next = ev.lastModel.predictOne(fvec);
+        const conf = Math.min(1, Math.max(0, Math.abs(pred_next) * 50)); // crude scale for demo
+        this.ui.pred_ret.textContent = nf.format(pred_next);
+        const nextPrice = lastClose * (1 + pred_next);
+        this.ui.pred_price.textContent = nf.format(nextPrice);
+        this.ui.pred_conf.textContent = nf.format(conf);
+
+      }catch(e){
+        this.ui.diag.textContent = e && e.message ? e.message : String(e);
+        console.error(e);
+      }finally{
+        this.ui.run.disabled=false;
+      }
+    };
   }
-
-  run(){ clearInterval(this.timer); this.timer = setInterval(()=>{ step(State.data); this.afterTick(); }, 50); }
-
-  async exportBest(){
-    const best = State.data.best;
-    if(!best.genome){ this.log('Kein Ergebnis vorhanden.'); return; }
-    const payload = {
-      ts: new Date().toISOString(),
-      fitness: Number(best.fitness.toFixed(6)),
-      genome: best.genome,
-      target: State.data.target,
-      nDims: State.data.nDims,
-      mutationRate: State.data.mutationRate,
-      version: State.data.version
-    };
-    const line = JSON.stringify(payload);
-    const h = await sha256(line);
-    const name = `best-${payload.ts.replace(/[:.]/g,'-')}-${h.slice(0,8)}.jsonl`;
-    download(name, line + '\n');
-    this.log(`Exportiert: ${name}`);
-  }
-
-  renderTarget(){ this.ui.targetPreview.textContent = fmtArr(State.data.target); }
-
-  setStatus(txt){ this.ui.status.textContent = txt; }
-  diag(txt){ if(this.ui.diag) this.ui.diag.textContent = txt; }
-
-  refresh(){
-    this.ui.gen.textContent = State.data.gen;
-    this.ui.fit.textContent = Number.isFinite(State.data.best.fitness) ? State.data.best.fitness.toFixed(6) : '–';
-    this.ui.toggle.textContent = State.data.running ? 'Stop' : 'Start';
-  }
-
-  afterTick(){
-    if (State.data.gen % 50 === 0) { this.log(`Gen ${State.data.gen} | best=${State.data.best.fitness.toFixed(6)}`); State.save(); }
-    this.refresh();
-  }
-
-  log(msg){ const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`; this.ui.log.textContent = line + this.ui.log.textContent; console.log(msg); }
 }
