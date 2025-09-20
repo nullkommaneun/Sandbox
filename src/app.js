@@ -1,0 +1,10 @@
+import { State } from './state.js';import { step } from './loop.js';import { selfTests } from './tests.js';import { download, sha256 } from './util.js';
+export class App{constructor(){this.ui={status:document.getElementById('status'),gen:document.getElementById('gen'),fit:document.getElementById('fit'),log:document.getElementById('log'),toggle:document.getElementById('toggle'),step:document.getElementById('step'),export:document.getElementById('export'),reset:document.getElementById('reset')};this.timer=null;}
+async init(){State.load();this.bind();const t=await selfTests();this.setStatus(t.ok?'Bereit.':'Fehler');this.refresh();}
+bind(){this.ui.toggle.onclick=()=>{State.data.running=!State.data.running;this.ui.toggle.textContent=State.data.running?'Stop':'Start';if(State.data.running)this.run();else clearInterval(this.timer);State.save();};this.ui.step.onclick=()=>{step(State.data);this.afterTick();};this.ui.reset.onclick=()=>{State.reset();this.refresh();this.log('Reset.');};this.ui.export.onclick=()=>this.exportBest();}
+run(){clearInterval(this.timer);this.timer=setInterval(()=>{step(State.data);this.afterTick();},100);}
+async exportBest(){const best=State.data.best;if(!best.genome){this.log('Kein Ergebnis');return;}const payload={ts:new Date().toISOString(),fitness:best.fitness,genome:best.genome};const line=JSON.stringify(payload);const h=await sha256(line);download(`best-${h.slice(0,8)}.jsonl`,line+'\n');this.log('Exportiert');}
+setStatus(txt){this.ui.status.textContent=txt;}
+refresh(){this.ui.gen.textContent=State.data.gen;this.ui.fit.textContent=Number.isFinite(State.data.best.fitness)?State.data.best.fitness.toFixed(6):'–';this.ui.toggle.textContent=State.data.running?'Stop':'Start';}
+afterTick(){if(State.data.gen%50===0){this.log(`Gen ${State.data.gen} | best=${State.data.best.fitness.toFixed(6)}`);State.save();}this.refresh();}
+log(msg){this.ui.log.textContent=`[${new Date().toLocaleTimeString()}] ${msg}\n`+this.ui.log.textContent;}}

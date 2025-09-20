@@ -1,0 +1,1 @@
+export async function selfTests(){let rngOk=true,jsonOk=false,storageOk=false;try{rngOk=Math.random()>=0;}catch{};try{jsonOk=JSON.parse(JSON.stringify({x:1})).x===1;}catch{};try{localStorage.setItem('t','1');localStorage.removeItem('t');storageOk=true;}catch{};return{ok:rngOk&&jsonOk&&storageOk};}
