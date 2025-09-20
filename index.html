@@ -1,67 +1,83 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Evolab • Mehrdimensionale Genome</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Gold • Nächster-Tag-Prognose</title>
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'; connect-src 'self'; img-src 'self' data:;">
-  <link rel="manifest" href="assets/manifest.json">
-  <link rel="icon" href="assets/icon-192.png">
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self'">
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-    body { margin: 0; background:#0b0f14; color:#e6eef7; }
-    main { max-width: 1000px; margin: 24px auto; padding: 16px; }
-    h1 { margin: 0 0 14px 0; }
+    body { margin:0; background:#0b0f14; color:#e6eef7; }
+    main { max-width: 1100px; margin: 24px auto; padding: 16px; }
+    h1 { margin: 0 0 10px 0; }
     .card { background:#101722; border:1px solid #1e2a3a; border-radius:12px; padding:16px; margin:12px 0; }
     .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-    button { background:#1c7df2; border:none; color:white; padding:10px 14px; border-radius:8px; cursor:pointer; }
-    button.secondary { background:#253247; }
-    input[type=number], input[type=range] { background:#0d131c; border:1px solid #1e2a3a; color:#e6eef7; padding:8px; border-radius:8px; }
-    pre { background:#0d131c; border:1px solid #1e2a3a; border-radius:8px; padding:12px; overflow:auto; max-height:42vh; }
-    .metrics span { display:inline-block; min-width: 150px; }
-    .err { color:#ff9aa2; }
+    input, select, button { background:#0d131c; border:1px solid #1e2a3a; color:#e6eef7; padding:8px 10px; border-radius:8px; }
+    button.action { background:#1c7df2; border:none; color:white; cursor:pointer; }
+    .kv { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px; }
+    .kv label { display:block; font-size:.9rem; color:#a3b3c7; }
+    .kv div { font-size:1.05rem; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .slim { font-size: 0.95rem; }
+    #chart { width:100%; height:320px; background:#0d131c; border:1px solid #1e2a3a; border-radius:8px; }
+    .err { color:#ff9aa2; }
   </style>
 </head>
 <body>
   <main>
-    <h1>Evolab</h1>
+    <h1>Gold • Nächster-Tag-Prognose</h1>
+    <div class="card">
+      <div class="row">
+        <label>Preis-CSV:&nbsp;
+          <select id="goldCsv">
+            <option value="data/raw/gold_sample.csv">data/raw/gold_sample.csv</option>
+          </select>
+        </label>
+        <label>Makro:&nbsp;
+          <select id="macroCsv">
+            <option value="data/raw/macro_sample.csv">data/raw/macro_sample.csv</option>
+          </select>
+        </label>
+        <label>Horizon:&nbsp;
+          <select id="horizon">
+            <option value="1">t+1</option>
+            <option value="5">t+5</option>
+          </select>
+        </label>
+        <label>Train (Monate):&nbsp;<input id="train" type="number" value="36" min="12" step="6" style="width:90px"/></label>
+        <label>Test (Monate):&nbsp;<input id="test" type="number" value="6" min="3" step="3" style="width:90px"/></label>
+        <button id="run" class="action">Prognose & Evaluation</button>
+      </div>
+      <div class="row"><span id="diag" class="err"></span></div>
+    </div>
 
     <div class="card">
-      <div class="metrics">
-        <div><span>Status:</span> <strong id="status">Initialisiere…</strong></div>
-        <div><span>Generation:</span> <strong id="gen">0</strong></div>
-        <div><span>Beste Fitness:</span> <strong id="fit">–</strong></div>
-      </div>
-
-      <div class="row" style="margin-top:12px;">
-        <button id="toggle">Start</button>
-        <button id="step" class="secondary">+1 Schritt</button>
-        <button id="export" class="secondary">Bestes Ergebnis exportieren</button>
-        <button id="reset" class="secondary">Zurücksetzen</button>
-      </div>
-
-      <div class="row" style="margin-top:12px;">
-        <label>Dimensionen:&nbsp;<input id="dims" type="number" min="2" max="128" step="1" value="8" style="width:80px"></label>
-        <label>Mutation:&nbsp;<input id="mut" type="range" min="0" max="0.5" step="0.005" value="0.07"></label>
-        <span class="mono slim">m=<span id="mutv">0.07</span></span>
-        <button id="randTarget" class="secondary">Ziel zufällig</button>
-      </div>
-
-      <div class="row slim mono" style="margin-top:6px;">
-        <div>Ziel: <span id="targetPreview"></span></div>
-      </div>
-
-      <div class="row" style="margin-top:8px;">
-        <span id="diag" class="err"></span>
+      <div class="kv">
+        <div><label>Nächster Tag: erwarteter Return</label><div id="pred_ret">–</div></div>
+        <div><label>Nächster Tag: prognostizierter Preis</label><div class="mono" id="pred_price">–</div></div>
+        <div><label>Konfidenz (Skala 0–1)</label><div id="pred_conf">–</div></div>
+        <div><label>Letzter Schlusskurs</label><div class="mono" id="last_close">–</div></div>
       </div>
     </div>
 
     <div class="card">
-      <strong>Live-Log</strong>
-      <pre id="log"></pre>
+      <strong>Test-Ergebnis (Out-of-Sample)</strong>
+      <div class="kv" style="margin-top:8px;">
+        <div><label>RMSE (Return)</label><div id="m_rmse">–</div></div>
+        <div><label>MAE (Return)</label><div id="m_mae">–</div></div>
+        <div><label>R² (Return)</label><div id="m_r2">–</div></div>
+        <div><label>Beobachtungen (OOS)</label><div id="m_n">–</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <strong>OOS: Prognose vs. Realisierung (Returns)</strong>
+      <div id="chart"></div>
+    </div>
+
+    <div class="card">
+      <strong>Hinweis</strong>
+      <div>Diese App erstellt ausschließlich eine **Preisprognose** für den nächsten Tag (oder 5 Tage), basierend auf historischen und aktuellen Marktdaten. Keine Orders, kein Trading, keine Signale zur Anlageentscheidung.</div>
     </div>
   </main>
 
