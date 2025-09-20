@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'; connect-src 'self'; img-src 'self' data:;"/>
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'; connect-src 'self'; img-src 'self' data:;">
   <link rel="manifest" href="assets/manifest.json">
-  <title>Evolab • Self-Sustaining</title>
+  <link rel="icon" href="assets/icon-192.png">
+  <title>Evolab • Digitale Evolution</title>
 </head>
 <body>
   <main>
@@ -14,7 +16,10 @@
     <p>Status: <span id="status">Initialisiere…</span></p>
     <p>Generation: <span id="gen">0</span> • Beste Fitness: <span id="fit">–</span></p>
     <button id="toggle">Start</button>
-    <pre id="log" style="max-height:40vh;overflow:auto;"></pre>
+    <button id="step">+1 Schritt</button>
+    <button id="export">Bestes Ergebnis exportieren</button>
+    <button id="reset">Zurücksetzen</button>
+    <pre id="log"></pre>
   </main>
   <script type="module">
     import { App } from './src/app.js';
