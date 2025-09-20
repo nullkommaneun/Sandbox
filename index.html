@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Evolab • Digitale Evolution</title>
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'; connect-src 'self'; img-src 'self' data:;">
-  <title>Evolab • Digitale Evolution</title>
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     body { margin: 0; background:#0b0f14; color:#e6eef7; }
-    main { max-width: 960px; margin: 24px auto; padding: 16px; }
-    h1 { margin: 0 0 8px 0; font-weight: 700; }
+    main { max-width: 980px; margin: 24px auto; padding: 16px; }
+    h1 { margin: 0 0 14px 0; }
     .card { background:#101722; border:1px solid #1e2a3a; border-radius:12px; padding:16px; margin:12px 0; }
-    .row { display:flex; gap:12px; flex-wrap: wrap; align-items: center; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
     button { background:#1c7df2; border:none; color:white; padding:10px 14px; border-radius:8px; cursor:pointer; }
     button.secondary { background:#253247; }
     pre { background:#0d131c; border:1px solid #1e2a3a; border-radius:8px; padding:12px; overflow:auto; max-height:42vh; }
-    .metrics span { display:inline-block; min-width: 140px; }
+    .metrics span { display:inline-block; min-width: 150px; }
+    .err { color:#ff9aa2; }
   </style>
 </head>
 <body>
@@ -35,16 +35,40 @@
         <button id="export" class="secondary">Bestes Ergebnis exportieren</button>
         <button id="reset" class="secondary">Zurücksetzen</button>
       </div>
+      <div class="row" style="margin-top:8px;">
+        <span id="diag" class="err"></span>
+      </div>
     </div>
     <div class="card">
       <strong>Live-Log</strong>
       <pre id="log"></pre>
     </div>
   </main>
+
   <script type="module">
     import { App } from './src/app.js';
-    const app = new App();
-    app.init();
+    (async () => {
+      try{
+        const app = new App();
+        await app.init();
+      }catch(e){
+        const el = document.getElementById('diag');
+        el.textContent = 'Startfehler: ' + (e && e.message ? e.message : e);
+        console.error('Startfehler', e);
+      }
+    })();
+  </script>
+
+  <script>
+    // Zeige unbehandelte Fehler in der UI
+    window.addEventListener('error', (e) => {
+      const el = document.getElementById('diag');
+      if(el) el.textContent = 'Fehler: ' + (e && e.message ? e.message : e);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      const el = document.getElementById('diag');
+      if(el) el.textContent = 'Promise-Fehler: ' + (e && e.reason && e.reason.message ? e.reason.message : e.reason);
+    });
   </script>
 </body>
 </html>
