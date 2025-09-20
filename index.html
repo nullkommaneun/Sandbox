@@ -6,6 +6,8 @@
   <title>Evolab • Digitale Evolution</title>
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'; connect-src 'self'; img-src 'self' data:;">
+  <link rel="manifest" href="assets/manifest.json">
+  <link rel="icon" href="assets/icon-192.png">
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     body { margin: 0; background:#0b0f14; color:#e6eef7; }
@@ -45,30 +47,6 @@
     </div>
   </main>
 
-  <script type="module">
-    import { App } from './src/app.js';
-    (async () => {
-      try{
-        const app = new App();
-        await app.init();
-      }catch(e){
-        const el = document.getElementById('diag');
-        el.textContent = 'Startfehler: ' + (e && e.message ? e.message : e);
-        console.error('Startfehler', e);
-      }
-    })();
-  </script>
-
-  <script>
-    // Zeige unbehandelte Fehler in der UI
-    window.addEventListener('error', (e) => {
-      const el = document.getElementById('diag');
-      if(el) el.textContent = 'Fehler: ' + (e && e.message ? e.message : e);
-    });
-    window.addEventListener('unhandledrejection', (e) => {
-      const el = document.getElementById('diag');
-      if(el) el.textContent = 'Promise-Fehler: ' + (e && e.reason && e.reason.message ? e.reason.message : e.reason);
-    });
-  </script>
+  <script type="module" src="src/boot.js"></script>
 </body>
 </html>
