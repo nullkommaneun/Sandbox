@@ -1,4 +1,4 @@
-const CACHE = 'evolab-cache-v130';
+const CACHE = 'evolab-ndim-v100';
 const ASSETS = [
   'index.html',
   'src/boot.js','src/app.js','src/loop.js','src/state.js','src/tests.js','src/util.js',
