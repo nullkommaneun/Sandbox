@@ -1,6 +1,6 @@
 {
-  "name": "Evolab ND",
-  "short_name": "Evolab",
+  "name": "Gold Next-Day Predictor",
+  "short_name": "GoldPredict",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#0b0f14",
