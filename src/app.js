@@ -3,7 +3,7 @@ import { step } from './loop.js';
 import { selfTests } from './tests.js';
 import { download, sha256 } from './util.js';
 
-export class App {
+export class App{
   constructor(){
     this.ui = {
       status: document.getElementById('status'),
@@ -20,26 +20,13 @@ export class App {
   }
 
   async init(){
-    try{
-      State.load();
-      this.bind();
-      const t = await selfTests();
-      if(!t.ok){
-        this.setStatus('Selbsttest fehlgeschlagen'); 
-      }else{
-        this.setStatus('Bereit.');
-      }
-      this.refresh();
-
-      // SW nur unter HTTPS registrieren
-      if ('serviceWorker' in navigator && location.protocol.startsWith('https')) {
-        try { await navigator.serviceWorker.register('./sw.js'); } catch(e){ this.diag('SW: '+e.message); }
-      }
-
-    }catch(e){
-      this.diag('Init-Fehler: ' + e.message);
-      console.error(e);
-      throw e;
+    State.load();
+    this.bind();
+    const t = await selfTests();
+    this.setStatus(t.ok ? 'Bereit.' : 'Selbsttest fehlgeschlagen');
+    this.refresh();
+    if ('serviceWorker' in navigator && location.protocol.startsWith('https')) {
+      try{ await navigator.serviceWorker.register('./sw.js'); }catch(e){ this.diag('SW: '+e.message); }
     }
   }
 
@@ -55,21 +42,12 @@ export class App {
     this.ui.export.onclick = () => this.exportBest();
   }
 
-  run(){
-    clearInterval(this.timer);
-    this.timer = setInterval(() => { step(State.data); this.afterTick(); }, 100);
-  }
+  run(){ clearInterval(this.timer); this.timer = setInterval(()=>{ step(State.data); this.afterTick(); }, 100); }
 
   async exportBest(){
     const best = State.data.best;
     if(!best.genome){ this.log('Kein Ergebnis vorhanden.'); return; }
-    const payload = {
-      ts: new Date().toISOString(),
-      fitness: Number(best.fitness.toFixed(6)),
-      genome: best.genome,
-      target: State.data.target,
-      version: State.data.version
-    };
+    const payload = { ts:new Date().toISOString(), fitness:Number(best.fitness.toFixed(6)), genome:best.genome, target:State.data.target, version:State.data.version };
     const line = JSON.stringify(payload);
     const h = await sha256(line);
     const name = `best-${payload.ts.replace(/[:.]/g,'-')}-${h.slice(0,8)}.jsonl`;
@@ -87,16 +65,9 @@ export class App {
   }
 
   afterTick(){
-    if (State.data.gen % 50 === 0) {
-      this.log(`Gen ${State.data.gen} | best=${State.data.best.fitness.toFixed(6)}`);
-      State.save();
-    }
+    if (State.data.gen % 50 === 0) { this.log(`Gen ${State.data.gen} | best=${State.data.best.fitness.toFixed(6)}`); State.save(); }
     this.refresh();
   }
 
-  log(msg){
-    const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-    this.ui.log.textContent = line + this.ui.log.textContent;
-    console.log(msg);
-  }
+  log(msg){ const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`; this.ui.log.textContent = line + this.ui.log.textContent; console.log(msg); }
 }
