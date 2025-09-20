@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'; connect-src 'self'; img-src 'self' data:;"/>
+  <link rel="manifest" href="assets/manifest.json">
+  <title>Evolab • Self-Sustaining</title>
+</head>
+<body>
+  <main>
+    <h1>Evolab</h1>
+    <p>Status: <span id="status">Initialisiere…</span></p>
+    <p>Generation: <span id="gen">0</span> • Beste Fitness: <span id="fit">–</span></p>
+    <button id="toggle">Start</button>
+    <pre id="log" style="max-height:40vh;overflow:auto;"></pre>
+  </main>
+  <script type="module">
+    import { App } from './src/app.js';
+    const app = new App();
+    app.init();
+  </script>
+</body>
+</html>
