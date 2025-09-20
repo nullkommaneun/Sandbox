@@ -6,20 +6,40 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'; connect-src 'self'; img-src 'self' data:;">
-  <link rel="manifest" href="assets/manifest.json">
-  <link rel="icon" href="assets/icon-192.png">
   <title>Evolab • Digitale Evolution</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    body { margin: 0; background:#0b0f14; color:#e6eef7; }
+    main { max-width: 960px; margin: 24px auto; padding: 16px; }
+    h1 { margin: 0 0 8px 0; font-weight: 700; }
+    .card { background:#101722; border:1px solid #1e2a3a; border-radius:12px; padding:16px; margin:12px 0; }
+    .row { display:flex; gap:12px; flex-wrap: wrap; align-items: center; }
+    button { background:#1c7df2; border:none; color:white; padding:10px 14px; border-radius:8px; cursor:pointer; }
+    button.secondary { background:#253247; }
+    pre { background:#0d131c; border:1px solid #1e2a3a; border-radius:8px; padding:12px; overflow:auto; max-height:42vh; }
+    .metrics span { display:inline-block; min-width: 140px; }
+  </style>
 </head>
 <body>
   <main>
     <h1>Evolab</h1>
-    <p>Status: <span id="status">Initialisiere…</span></p>
-    <p>Generation: <span id="gen">0</span> • Beste Fitness: <span id="fit">–</span></p>
-    <button id="toggle">Start</button>
-    <button id="step">+1 Schritt</button>
-    <button id="export">Bestes Ergebnis exportieren</button>
-    <button id="reset">Zurücksetzen</button>
-    <pre id="log"></pre>
+    <div class="card">
+      <div class="metrics">
+        <div><span>Status:</span> <strong id="status">Initialisiere…</strong></div>
+        <div><span>Generation:</span> <strong id="gen">0</strong></div>
+        <div><span>Beste Fitness:</span> <strong id="fit">–</strong></div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="toggle">Start</button>
+        <button id="step" class="secondary">+1 Schritt</button>
+        <button id="export" class="secondary">Bestes Ergebnis exportieren</button>
+        <button id="reset" class="secondary">Zurücksetzen</button>
+      </div>
+    </div>
+    <div class="card">
+      <strong>Live-Log</strong>
+      <pre id="log"></pre>
+    </div>
   </main>
   <script type="module">
     import { App } from './src/app.js';
